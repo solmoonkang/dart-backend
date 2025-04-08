@@ -85,7 +85,7 @@ public class AuthenticationService {
 		String accessToken = extractTokenFromHeader(request);
 		String refreshToken = cookieUtil.getCookie(request, REFRESH_TOKEN_COOKIE_NAME);
 
-		if ( accessToken == null || refreshToken == null) {
+		if (accessToken == null || refreshToken == null) {
 			throw new NotFoundException(ErrorCode.FAIL_TOKEN_NOT_FOUND);
 		}
 
@@ -154,7 +154,7 @@ public class AuthenticationService {
 	}
 
 	protected void validateRefreshToken(String email) {
-		if(!tokenRedisRepository.checkRefreshTokenExists(email)) {
+		if (!tokenRedisRepository.checkRefreshTokenExists(email)) {
 			throw new UnauthorizedException(ErrorCode.FAIL_INVALID_REFRESH_TOKEN);
 		}
 	}
