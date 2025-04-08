@@ -33,7 +33,16 @@ public class ChatMessageService {
 	private final ChatMessageRepository chatMessageRepository;
 
 	@Transactional
-	public void saveChatMessage(Long chatRoomId, ChatMessageCreateDto chatMessageCreateDto) {
+	public void saveChatMessageToMySQL(Long chatRoomId, ChatMessageCreateDto chatMessageCreateDto) {
+		final ChatRoom chatRoom = getChatRoomById(chatRoomId);
+		final Member member = getMemberByNickname(chatMessageCreateDto.sender());
+		final ChatMessage chatMessage = ChatMessage.chatMessageFromCreateDto(chatRoom, member, chatMessageCreateDto);
+
+		chatMessageRepository.save(chatMessage);
+	}
+
+	@Transactional
+	public void saveChatMessageToRedis(Long chatRoomId, ChatMessageCreateDto chatMessageCreateDto) {
 		final ChatRoom chatRoom = getChatRoomById(chatRoomId);
 		final Member member = getMemberByNickname(chatMessageCreateDto.sender());
 		final ChatMessage chatMessage = ChatMessage.chatMessageFromCreateDto(chatRoom, member, chatMessageCreateDto);
