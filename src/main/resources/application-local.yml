@@ -3,6 +3,37 @@ spring:
     activate:
       on-profile: local
 
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:tcp://localhost/~/dart
+    username: sa
+    password:
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-dart
+
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create
+    show-sql: true
+    defer-datasource-initialization: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  sql:
+    init:
+      mode: always
+      data-locations: classpath:data.sql
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
   servlet:
     multipart:
       max-file-size: 10MB
@@ -13,18 +44,18 @@ spring:
       client:
         registration:
           kakao:
-            provider: "kakao"
-            client-id: ${kakao.client-id}
-            client-secret: ${kakao.client-secret}
-            redirect-uri: ${kakao.redirect-uri}
+            provider: kakao
+            client-id: test-kakao-client-id
+            client-secret: test-secret
+            redirect-uri: http://localhost:8080/oauth/kakao
             authorization-grant-type: authorization_code
             client-authentication-method: client_secret_post
             scope: profile_nickname, profile_image, account_email
           google:
-            provider: "google"
-            client-id: ${google.client-id}
-            client-secret: ${google.client-secret}
-            redirect-uri: ${google.redirect-uri}
+            provider: google
+            client-id: test-google-client-id
+            client-secret: test-secret
+            redirect-uri: http://localhost:8080/oauth/google
             authorization-grant-type: authorization_code
             client-authentication-method: client_secret_post
             scope: profile, email
@@ -40,31 +71,11 @@ spring:
             user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
             user-name-attribute: sub
 
-  h2:
-    console:
-      enabled: true
-      path: /h2-dart
-
-  datasource:
-    driver-class-name: org.h2.Driver
-    url: jdbc:h2:tcp://localhost/~/dart
-    username: sa
-    password:
-
-  jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
-    hibernate:
-      ddl-auto: update
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
-
   mail:
     host: smtp.gmail.com
     port: 587
-    username: ${spring.mail.username}
-    password: ${spring.mail.password}
+    username: dummy@example.com
+    password: dummy-password
     properties:
       mail:
         smtp:
@@ -77,28 +88,23 @@ spring:
           writetimeout: 5000
     auth-code-expiration-millis: 300000
 
-  data:
-    redis:
-      host: ${spring.data.redis.host}
-      port: ${spring.data.redis.port}
-
 jwt:
   secret:
-    access-key: ${jwt.secret.access-key}
-  access-expire: ${jwt.access-expire}
-  refresh-expire: ${jwt.refresh-expire}
+    access-key: thisIsASecretKeyThatIsSecureEnough32Chars
+  access-expire: 3600000 # 1시간
+  refresh-expire: 604800000 # 7일
+
+kakao:
+  admin-key: dummy-kakao-admin-key
 
 cloud:
   aws:
     s3:
-      bucket: ${cloud.aws.s3.bucket}
+      bucket: test-bucket
     credentials:
-      access-key: ${cloud.aws.credentials.access-key}
-      secret-key: ${cloud.aws.credentials.secret-key}
+      access-key: test-access
+      secret-key: test-secret
     region:
-      static: ${cloud.aws.region.static}
-      auto: false
-    stack:
-      auto: false
+      static: ap-northeast-2
     cloudfront:
-      domain: ${cloud.aws.cloudfront.domain}
+      domain: test.cloudfront.net
