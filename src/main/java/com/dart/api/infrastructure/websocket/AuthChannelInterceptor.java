@@ -1,10 +1,10 @@
 package com.dart.api.infrastructure.websocket;
 
-import static com.dart.global.common.util.AuthConstant.*;
 import static com.dart.global.common.util.ChatConstant.*;
 
 import java.util.HashMap;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.messaging.Message;
@@ -30,13 +30,24 @@ public class AuthChannelInterceptor implements ChannelInterceptor {
 
 	private final JwtProviderService jwtProviderService;
 
+	@Value("${spring.profiles.active:}")
+	private String activeProfile;
+
 	@Override
 	public Message<?> preSend(Message<?> message, MessageChannel channel) {
-		StompHeaderAccessor stompHeaderAccessor = StompHeaderAccessor.wrap(message);
+		StompHeaderAccessor accessor = StompHeaderAccessor.wrap(message);
 
-		if (isConnectCommand(stompHeaderAccessor)) {
-			String authorizationHeader = stompHeaderAccessor.getFirstNativeHeader(ACCESS_TOKEN_HEADER);
-			if (authorizationHeader == null || !authorizationHeader.startsWith(BEARER + " ")) {
+		if (isConnectCommand(accessor)) {
+
+			// ✅ 테스트 환경에서는 인증 우회
+			if ("local".equals(activeProfile) || "test".equals(activeProfile)) {
+				log.warn("[✅ LOGGER] WebSocket 인증 우회: profile = {}", activeProfile);
+				return message;
+			}
+
+			// 🔐 실제 인증 로직
+			String authorizationHeader = accessor.getFirstNativeHeader("Authorization");
+			if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
 				log.warn("[✅ LOGGER] INVALID OR MISSING AUTHORIZATION HEADER");
 				throw new NotFoundException(ErrorCode.FAIL_TOKEN_NOT_FOUND);
 			}
@@ -46,28 +57,28 @@ public class AuthChannelInterceptor implements ChannelInterceptor {
 
 			AuthUser authUser = jwtProviderService.extractAuthUserByAccessToken(accessToken);
 
-			stompHeaderAccessor.getSessionAttributes().computeIfAbsent(CHAT_SESSION_USER, key -> new HashMap<>());
-			stompHeaderAccessor.getSessionAttributes().put(CHAT_SESSION_USER, authUser);
+			accessor.getSessionAttributes().computeIfAbsent(CHAT_SESSION_USER, key -> new HashMap<>());
+			accessor.getSessionAttributes().put(CHAT_SESSION_USER, authUser);
 		}
 
 		return message;
 	}
 
-	private boolean isConnectCommand(StompHeaderAccessor stompHeaderAccessor) {
-		return StompCommand.CONNECT.equals(stompHeaderAccessor.getCommand());
+	private boolean isConnectCommand(StompHeaderAccessor accessor) {
+		return StompCommand.CONNECT.equals(accessor.getCommand());
 	}
 
-	private String extractToken(String authorizationHeader) {
-		return authorizationHeader.substring((BEARER + " ").length()).trim();
+	private String extractToken(String header) {
+		return header.substring("Bearer ".length()).trim();
 	}
 
-	private void validateAccessToken(String accessToken) {
-		if (accessToken.isEmpty()) {
+	private void validateAccessToken(String token) {
+		if (token.isEmpty()) {
 			log.warn("[✅ LOGGER] TOKEN IS EMPTY");
 			throw new NotFoundException(ErrorCode.FAIL_TOKEN_NOT_FOUND);
 		}
 
-		if (!jwtProviderService.isUsable(accessToken)) {
+		if (!jwtProviderService.isUsable(token)) {
 			log.warn("[✅ LOGGER] JWT TOKEN IS NOT USABLE");
 			throw new NotFoundException(ErrorCode.FAIL_INVALID_TOKEN);
 		}

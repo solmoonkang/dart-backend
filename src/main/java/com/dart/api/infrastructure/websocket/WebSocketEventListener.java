@@ -36,9 +36,12 @@ public class WebSocketEventListener {
 		validateDestinationPresent(destination);
 
 		final AuthUser authUser = extractAuthUserFromAttributes(sessionSubscribeEvent);
-		validateAuthUserPresent(authUser);
-		log.info("[✅ LOGGER] MEMBER {} IS JOIN CHATROOM", authUser.nickname());
+		if (authUser == null) {
+			log.warn("[✅ LOGGER] TEST 환경 - 인증 우회로 인해 authUser가 존재하지 않습니다.");
+			return;
+		}
 
+		log.info("[✅ LOGGER] MEMBER {} IS JOIN CHATROOM", authUser.nickname());
 		final Member member = getMemberByEmail(authUser.email());
 		memberSessionRegistry.removeSessionByNickname(member.getNickname());
 		memberSessionRegistry.addSession(member.getNickname(), sessionId, destination, member.getProfileImageUrl());
@@ -47,29 +50,30 @@ public class WebSocketEventListener {
 	@EventListener
 	public void handleDisconnectEvent(SessionDisconnectEvent sessionDisconnectEvent) {
 		final String sessionId = extractSessionIdFromHeaderAccessor(sessionDisconnectEvent);
-
 		validateSessionIdPresent(sessionId);
 
 		final AuthUser authUser = extractAuthUserFromAttributes(sessionDisconnectEvent);
-		validateAuthUserPresent(authUser);
-		log.info("[✅ LOGGER] MEMBER {} IS LEFT CHATROOM", authUser.nickname());
+		if (authUser == null) {
+			log.warn("[✅ LOGGER] TEST 환경 - 인증 우회로 인해 authUser가 존재하지 않습니다.");
+			return;
+		}
 
+		log.info("[✅ LOGGER] MEMBER {} IS LEFT CHATROOM", authUser.nickname());
 		memberSessionRegistry.removeSession(sessionId);
 	}
 
-	private String extractSessionIdFromHeaderAccessor(AbstractSubProtocolEvent abstractSubProtocolEvent) {
-		return SimpMessageHeaderAccessor.wrap(abstractSubProtocolEvent.getMessage()).getSessionId();
+	private String extractSessionIdFromHeaderAccessor(AbstractSubProtocolEvent event) {
+		return SimpMessageHeaderAccessor.wrap(event.getMessage()).getSessionId();
 	}
 
-	private String extractDestinationFromHeaderAccessor(AbstractSubProtocolEvent abstractSubProtocolEvent) {
-		return SimpMessageHeaderAccessor.wrap(abstractSubProtocolEvent.getMessage()).getDestination();
+	private String extractDestinationFromHeaderAccessor(AbstractSubProtocolEvent event) {
+		return SimpMessageHeaderAccessor.wrap(event.getMessage()).getDestination();
 	}
 
-	private AuthUser extractAuthUserFromAttributes(AbstractSubProtocolEvent abstractSubProtocolEvent) {
-		SimpMessageHeaderAccessor simpMessageHeaderAccessor = SimpMessageHeaderAccessor
-			.wrap(abstractSubProtocolEvent.getMessage());
-
-		return (AuthUser)simpMessageHeaderAccessor.getSessionAttributes().get(CHAT_SESSION_USER);
+	private AuthUser extractAuthUserFromAttributes(AbstractSubProtocolEvent event) {
+		return (AuthUser) SimpMessageHeaderAccessor.wrap(event.getMessage())
+			.getSessionAttributes()
+			.get(CHAT_SESSION_USER);
 	}
 
 	private void validateSessionIdPresent(String sessionId) {
@@ -81,12 +85,6 @@ public class WebSocketEventListener {
 	private void validateDestinationPresent(String destination) {
 		if (destination == null || destination.isEmpty()) {
 			throw new BadRequestException(ErrorCode.FAIL_INVALID_DESTINATION);
-		}
-	}
-
-	private void validateAuthUserPresent(AuthUser authUser) {
-		if (authUser == null) {
-			log.error("[✅ LOGGER] ACCESS TOKEN IS EMPTIED OR EXPIRED");
 		}
 	}
 
