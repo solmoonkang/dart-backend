@@ -37,7 +37,7 @@ public class JwtProviderService {
 	private static final String EMAIL = "email";
 	private static final String NICKNAME = "nickname";
 	private static final String PROFILE_IMAGE = "profileImage";
-	private static final String CLEINT_INFO = "clientInfo";
+	private static final String CLIENT_INFO = "clientInfo";
 
 	@Value("${jwt.secret.access-key}")
 	private String secret;
@@ -105,7 +105,7 @@ public class JwtProviderService {
 			.claim(EMAIL, email)
 			.claim(NICKNAME, nickname)
 			.claim(PROFILE_IMAGE, profileImage)
-			.claim(CLEINT_INFO, clientInfo)
+			.claim(CLIENT_INFO, clientInfo)
 			.compact();
 
 		tokenRedisRepository.saveAccessToken(email, token);
@@ -176,7 +176,8 @@ public class JwtProviderService {
 		}
 	}
 
-	public boolean isAccessToken(String email) {return tokenRedisRepository.checkAccessTokenExists(email);
+	public boolean isAccessToken(String email) {
+		return tokenRedisRepository.checkAccessTokenExists(email);
 	}
 
 	public boolean validateAccessToken(String token, String clientInfo) {
@@ -190,9 +191,9 @@ public class JwtProviderService {
 			String email = claims.getSubject();
 			String storedToken = tokenRedisRepository.getAccessToken(email);
 
-			return token.equals(storedToken) && claims.get(CLEINT_INFO).equals(clientInfo);
+			return token.equals(storedToken) && claims.get(CLIENT_INFO).equals(clientInfo);
 		} catch (ExpiredJwtException e) {
-			return e.getClaims().get(CLEINT_INFO).equals(clientInfo);
+			return e.getClaims().get(CLIENT_INFO).equals(clientInfo);
 		} catch (JwtException | IllegalArgumentException e) {
 			return false;
 		}
