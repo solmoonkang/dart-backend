@@ -34,12 +34,21 @@ public class ChatController {
 	private final ChatMessageService chatMessageService;
 	private final ChatMessageReadService chatMessageReadService;
 
-	@MessageMapping(value = "/ws/{chat-room-id}/chat-messages")
+	@MessageMapping(value = "/ws/{chat-room-id}/chat-messages/mysql")
+	public void saveAndSendChatMessageDirectMySQL(
+		@DestinationVariable("chat-room-id") Long chatRoomId,
+		@Payload @Validated ChatMessageCreateDto chatMessageCreateDto
+	) {
+		chatMessageService.saveChatMessageToMySQL(chatRoomId, chatMessageCreateDto);
+		simpMessageSendingOperations.convertAndSend(TOPIC_PREFIX + chatRoomId, chatMessageCreateDto);
+	}
+
+	@MessageMapping(value = "/ws/{chat-room-id}/chat-messages/redis")
 	public void saveAndSendChatMessage(
 		@DestinationVariable("chat-room-id") Long chatRoomId,
 		@Payload @Validated ChatMessageCreateDto chatMessageCreateDto
 	) {
-		chatMessageService.saveChatMessage(chatRoomId, chatMessageCreateDto);
+		chatMessageService.saveChatMessageToRedis(chatRoomId, chatMessageCreateDto);
 		simpMessageSendingOperations.convertAndSend(TOPIC_PREFIX + chatRoomId, chatMessageCreateDto);
 	}
 
