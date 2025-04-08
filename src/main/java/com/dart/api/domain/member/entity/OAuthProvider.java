@@ -5,7 +5,8 @@ import com.dart.global.error.model.ErrorCode;
 
 public enum OAuthProvider {
 	KAKAO,
-	GOOGLE;
+	GOOGLE,
+	NONE;
 
 	public static OAuthProvider findByName(String name) {
 		for(OAuthProvider oauthProvider : values()) {
