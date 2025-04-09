@@ -13,7 +13,7 @@ public class ChatConstant {
 	public static final String CHAT_SESSION_USER = "authUser";
 	public static final String TOPIC_PREFIX = "/sub/ws/";
 	public static final long CHAT_MESSAGE_EXPIRY_SECONDS = 48 * 60 * 60;
-	public static final String CHAT_BATCH_SAVE_INTERVAL = "0,30 * * * * ?";		// 30초마다
+	public static final String CHAT_BATCH_SAVE_INTERVAL = "0 0/30 * * * ?";
 
 	public static final int MESSAGE_SIZE_LIMIT = 160 * 64 * 1024;
 	public static final int SEND_TIME_LIMIT = 100 * 10000;
