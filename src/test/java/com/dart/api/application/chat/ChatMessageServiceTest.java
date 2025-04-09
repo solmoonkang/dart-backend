@@ -57,7 +57,7 @@ class ChatMessageServiceTest {
 		when(memberRepository.findByNickname(anyString())).thenReturn(Optional.of(member));
 
 		// WHEN
-		chatMessageService.saveChatMessage(chatRoomId, chatMessageCreateDto);
+		chatMessageService.saveChatMessageToRedis(chatRoomId, chatMessageCreateDto);
 
 		// THEN
 		verify(chatRedisRepository, times(1)).saveChatMessage(any(ChatMessageSendDto.class), any(Member.class));
@@ -75,7 +75,7 @@ class ChatMessageServiceTest {
 
 		// WHEN & THEN
 		assertThatThrownBy(
-			() -> chatMessageService.saveChatMessage(chatRoomId, chatMessageCreateDto))
+			() -> chatMessageService.saveChatMessageToRedis(chatRoomId, chatMessageCreateDto))
 			.isInstanceOf(NotFoundException.class)
 			.hasMessage("[❎ ERROR] 요청하신 채팅방을 찾을 수 없습니다.");
 	}
@@ -94,7 +94,7 @@ class ChatMessageServiceTest {
 
 		// WHEN & THEN
 		assertThatThrownBy(
-			() -> chatMessageService.saveChatMessage(chatRoomId, chatMessageCreateDto))
+			() -> chatMessageService.saveChatMessageToRedis(chatRoomId, chatMessageCreateDto))
 			.isInstanceOf(NotFoundException.class)
 			.hasMessage("[❎ ERROR] 요청하신 회원을 찾을 수 없습니다.");
 	}
