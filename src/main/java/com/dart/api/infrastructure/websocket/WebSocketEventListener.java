@@ -37,7 +37,6 @@ public class WebSocketEventListener {
 
 		final AuthUser authUser = extractAuthUserFromAttributes(sessionSubscribeEvent);
 		if (authUser == null) {
-			log.warn("[✅ LOGGER] TEST 환경 - 인증 우회로 인해 authUser가 존재하지 않습니다.");
 			return;
 		}
 
@@ -54,7 +53,6 @@ public class WebSocketEventListener {
 
 		final AuthUser authUser = extractAuthUserFromAttributes(sessionDisconnectEvent);
 		if (authUser == null) {
-			log.warn("[✅ LOGGER] TEST 환경 - 인증 우회로 인해 authUser가 존재하지 않습니다.");
 			return;
 		}
 
