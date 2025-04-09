@@ -35,7 +35,7 @@ public class ChatController {
 	private final ChatMessageReadService chatMessageReadService;
 
 	@MessageMapping(value = "/ws/{chat-room-id}/chat-messages/mysql")
-	public void saveAndSendChatMessageDirectMySQL(
+	public void saveAndSendChatMessageToMySQL(
 		@DestinationVariable("chat-room-id") Long chatRoomId,
 		@Payload @Validated ChatMessageCreateDto chatMessageCreateDto
 	) {
@@ -44,7 +44,7 @@ public class ChatController {
 	}
 
 	@MessageMapping(value = "/ws/{chat-room-id}/chat-messages/redis")
-	public void saveAndSendChatMessage(
+	public void saveAndSendChatMessageToRedis(
 		@DestinationVariable("chat-room-id") Long chatRoomId,
 		@Payload @Validated ChatMessageCreateDto chatMessageCreateDto
 	) {
