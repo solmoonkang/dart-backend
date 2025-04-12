@@ -7,6 +7,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ScanOptions;
@@ -26,6 +27,7 @@ public class ListRedisRepository {
 
 	public void addElementWithExpiry(String key, Object value, long expire) {
 		redisTemplate.opsForList().rightPush(requireNonNull(key), requireNonNull(value));
+
 		if (expire > 0) {
 			redisTemplate.expire(key, Duration.ofSeconds(expire));
 		}
@@ -37,11 +39,17 @@ public class ListRedisRepository {
 
 	public List<Long> getActiveChatRoomIds(String keyPrefix) {
 		List<Long> chatRoomIds = new ArrayList<>();
-		ScanOptions scanOptions = ScanOptions.scanOptions().match(keyPrefix + "*").count(1000).build();
-		try (Cursor<byte[]> cursor = redisTemplate.getConnectionFactory().getConnection().scan(scanOptions)) {
+		ScanOptions scanOptions = ScanOptions.scanOptions()
+			.match(keyPrefix + "*")
+			.count(1000)
+			.build();
+
+		RedisConnection redisConnection = redisTemplate.getRequiredConnectionFactory().getConnection();
+
+		try (Cursor<byte[]> cursor = redisConnection.keyCommands().scan(scanOptions)) {
 			while (cursor.hasNext()) {
-				String key = new String(cursor.next());
-				String chatRoomId = key.replace(keyPrefix, BLANK);
+				String key = redisTemplate.getStringSerializer().deserialize(cursor.next());
+				String chatRoomId = requireNonNull(key).replace(keyPrefix, BLANK);
 				chatRoomIds.add(Long.parseLong(chatRoomId));
 			}
 		}
