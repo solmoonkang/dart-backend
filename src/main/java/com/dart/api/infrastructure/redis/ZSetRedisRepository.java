@@ -41,10 +41,10 @@ public class ZSetRedisRepository {
 
 	public Set<String> getRangeAsStringSet(String key, long start, long end) {
 		Set<Object> result = redisTemplate.opsForZSet().range(key, start, end);
-		Set<String> stringResult = result.stream()
-									.map(object -> (String) object)
-									.collect(Collectors.toSet());
-		return stringResult;
+
+		return requireNonNull(result).stream()
+			.map(object -> (String)object)
+			.collect(Collectors.toSet());
 	}
 
 	public void removeElement(String key, Object value) {
