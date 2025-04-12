@@ -69,10 +69,10 @@ class ChatControllerTest {
 		given(simpMessageHeaderAccessor.getSessionAttributes()).willReturn(sessionAttributes);
 
 		// WHEN
-		chatController.saveAndSendChatMessage(chatRoomId, chatMessageCreateDto);
+		chatController.saveAndSendChatMessageToRedis(chatRoomId, chatMessageCreateDto);
 
 		// THEN
-		verify(chatMessageService).saveChatMessage(chatRoomId, chatMessageCreateDto);
+		verify(chatMessageService).saveChatMessageToRedis(chatRoomId, chatMessageCreateDto);
 		verify(simpMessageSendingOperations).convertAndSend(TOPIC_PREFIX + chatRoomId, chatMessageCreateDto);
 	}
 
@@ -85,7 +85,8 @@ class ChatControllerTest {
 		int size = 10;
 
 		List<ChatMessageReadDto> chatMessageReadDtoList = Arrays.asList(
-			new ChatMessageReadDto("member1", "Hello 👋🏻", LocalDateTime.now(), true, "https://example.com/profile1.jpg"),
+			new ChatMessageReadDto("member1", "Hello 👋🏻", LocalDateTime.now(), true,
+				"https://example.com/profile1.jpg"),
 			new ChatMessageReadDto("member2", "Bye 👋🏻", LocalDateTime.now(), true, "https://example.com/profile2.jpg")
 		);
 
@@ -96,7 +97,8 @@ class ChatControllerTest {
 		given(chatMessageReadService.getChatMessageList(chatRoomId, page, size)).willReturn(pageResponse);
 
 		// WHEN
-		ResponseEntity<PageResponse<ChatMessageReadDto>> responseEntity = chatController.getChatMessageList(chatRoomId, page, size);
+		ResponseEntity<PageResponse<ChatMessageReadDto>> responseEntity = chatController.getChatMessageList(chatRoomId,
+			page, size);
 
 		// THEN
 		assertThat(responseEntity.getStatusCode()).isEqualTo(HttpStatus.OK);
