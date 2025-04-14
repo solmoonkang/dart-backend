@@ -14,8 +14,9 @@ public class RedisConstant {
 	public static final String REDIS_SESSION_LOGIN_PREFIX = "session:login:";
 	public static final String REDIS_EMAIL_PREFIX = "email:";
 	public static final String REDIS_PAYMENT_PREFIX = "payment:";
-	public static final String REDIS_CHAT_MESSAGE_PREFIX = "chatMessage:";
-	public static final String REDIS_BATCH_CHAT_MESSAGE_PREFIX = "batch_chatMessage:";
+	public static final String REDIS_CHAT_MESSAGE_PREFIX = "chat:messages:";
+	public static final String REDIS_CHAT_ROOM_CACHE_PREFIX = "chat:room:exists:";
+	public static final String REDIS_MEMBER_NICKNAME_CACHE_PREFIX = "chat:member:exists";
 	public static final String REDIS_NICKNAME_PREFIX = "nickname:";
 	public static final String REDIS_COUPON_PREFIX = "priority_coupon:";
 	public static final String REDIS_COUPON_COUNT_PREFIX = "priority_coupon_count:";
