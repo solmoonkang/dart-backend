@@ -11,7 +11,7 @@ import org.springframework.web.socket.messaging.AbstractSubProtocolEvent;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 import org.springframework.web.socket.messaging.SessionSubscribeEvent;
 
-import com.dart.api.application.chat.batch.ChatCacheService;
+import com.dart.api.application.chat.cache.ChatMessageCacheService;
 import com.dart.api.domain.auth.entity.AuthUser;
 import com.dart.api.domain.member.entity.Member;
 import com.dart.api.domain.member.repository.MemberRepository;
@@ -29,7 +29,7 @@ public class WebSocketEventListener {
 
 	private final MemberSessionRegistry memberSessionRegistry;
 	private final MemberRepository memberRepository;
-	private final ChatCacheService chatCacheService;
+	private final ChatMessageCacheService chatMessageCacheService;
 
 	@EventListener
 	public void handleSubscribeEvent(SessionSubscribeEvent sessionSubscribeEvent) {
@@ -40,15 +40,21 @@ public class WebSocketEventListener {
 		validateDestinationPresent(destination);
 
 		final AuthUser authUser = extractAuthUserFromAttributes(sessionSubscribeEvent);
-		if (authUser == null) return;
+		if (authUser == null) {
+			log.warn("[✅ LOGGER] 캐싱 처리로 인한 테스트로 인해 현재 사용자 인증을 무시합니다.");
+			return;
+		}
 
 		final Long chatRoomId = extractChatRoomIdFromDestination(destination);
-		final String nickname = authUser.nickname();
 
-		chatCacheService.ensureChatRoomExistsInCache(chatRoomId);
-		chatCacheService.ensureMemberExistsInCache(nickname);
-
+		// TODO: 적은 유저 수라면 제일 단순하고 실용적일 수 있다. 예를 들어 1,000명 미만의 트래픽과 사내/폐쇄형 커뮤니티 등에 어울린다.
+		//  하지만 추후 성능 상 문제가 발생할 수 있어 프로필 이미지만 Redis에 별도 캐싱을 해서 캐시 히트 시 RDB 접근이 없어 채팅방 입장이 더 빨라질 수 있다.
+		//  그렇게 되면 getMemberByEmail를 없앨 수 있다.
 		final Member member = getMemberByEmail(authUser.email());
+
+		chatMessageCacheService.cacheChatRoom(chatRoomId);
+		chatMessageCacheService.cacheMember(authUser.nickname());
+
 		log.info("[✅ LOGGER] MEMBER {} IS JOIN CHATROOM", authUser.nickname());
 		memberSessionRegistry.removeSessionByNickname(member.getNickname());
 		memberSessionRegistry.addSession(member.getNickname(), sessionId, destination, member.getProfileImageUrl());
@@ -60,9 +66,8 @@ public class WebSocketEventListener {
 		validateSessionIdPresent(sessionId);
 
 		final AuthUser authUser = extractAuthUserFromAttributes(sessionDisconnectEvent);
-		if (authUser == null) {
+		if (authUser == null)
 			return;
-		}
 
 		log.info("[✅ LOGGER] MEMBER {} IS LEFT CHATROOM", authUser.nickname());
 		memberSessionRegistry.removeSession(sessionId);
