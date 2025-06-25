@@ -16,7 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.dart.api.application.chat.ChatRoomService;
+import com.dart.api.application.chat.room.ChatRoomService;
 import com.dart.api.application.notification.ExhibitionNotificationService;
 import com.dart.api.application.review.ReviewService;
 import com.dart.api.domain.auth.entity.AuthUser;
