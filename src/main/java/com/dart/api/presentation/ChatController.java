@@ -15,8 +15,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.dart.api.application.chat.ChatMessageReadService;
-import com.dart.api.application.chat.ChatMessageService;
+import com.dart.api.application.chat.message.ChatMessageReadService;
+import com.dart.api.application.chat.message.ChatMessageService;
 import com.dart.api.dto.chat.request.ChatMessageCreateDto;
 import com.dart.api.dto.chat.response.ChatMessageReadDto;
 import com.dart.api.dto.chat.response.MemberSessionDto;
