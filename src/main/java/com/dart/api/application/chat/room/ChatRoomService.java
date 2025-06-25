@@ -1,10 +1,9 @@
-package com.dart.api.application.chat;
+package com.dart.api.application.chat.room;
 
 import org.springframework.stereotype.Service;
 
 import com.dart.api.domain.chat.entity.ChatRoom;
 import com.dart.api.domain.chat.repository.ChatMessageRepository;
-import com.dart.api.domain.chat.repository.ChatRedisRepository;
 import com.dart.api.domain.chat.repository.ChatRoomRepository;
 import com.dart.api.domain.gallery.entity.Gallery;
 import com.dart.global.error.exception.NotFoundException;
