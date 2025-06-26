@@ -21,10 +21,4 @@ public record ChatMessageCreateDto(
 
 	String profileImageUrl
 ) {
-
-	public static ChatMessageCreateDto createChatMessageCreateDto(String sender, String content,
-		LocalDateTime createdAt, boolean isAuthor, String profileImageUrl) {
-
-		return new ChatMessageCreateDto(sender, content, createdAt, isAuthor, profileImageUrl);
-	}
 }
