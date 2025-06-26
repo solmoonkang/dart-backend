@@ -5,10 +5,14 @@ import static com.dart.global.common.util.RedisConstant.*;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.List;
+import java.util.Set;
 
 import org.springframework.stereotype.Repository;
 
 import com.dart.api.dto.chat.request.ChatMessageCreateDto;
+import com.dart.api.dto.chat.request.cache.ChatRoomCacheDto;
+import com.dart.api.dto.chat.request.cache.MemberCacheDto;
 import com.dart.api.infrastructure.redis.ValueRedisRepository;
 import com.dart.api.infrastructure.redis.ZSetRedisRepository;
 import com.dart.global.common.util.JsonConverter;
@@ -31,14 +35,41 @@ public class ChatMessageRedisRepository {
 			CHAT_MESSAGE_EXPIRY_SECONDS);
 	}
 
-	public void cacheChatRoom(Long chatRoomId) {
+	public void cacheChatRoom(ChatRoomCacheDto chatRoomCacheDto) {
 		valueRedisRepository.saveValueWithExpiry(
-			generateChatRoomCacheKey(chatRoomId), "TURE", CACHE_EXPIRY_HOURS.getSeconds());
+			generateChatRoomCacheKey(chatRoomCacheDto.chatRoomId()),
+			jsonConverter.toJson(chatRoomCacheDto),
+			CACHE_EXPIRY_HOURS.getSeconds());
 	}
 
-	public void cacheMember(String nickname) {
+	public void cacheMember(MemberCacheDto memberCacheDto) {
 		valueRedisRepository.saveValueWithExpiry(
-			generateMemberCacheKey(nickname), "TRUE", CACHE_EXPIRY_HOURS.getSeconds());
+			generateMemberCacheKey(memberCacheDto.nickname()),
+			jsonConverter.toJson(memberCacheDto),
+			CACHE_EXPIRY_HOURS.getSeconds());
+	}
+
+	public List<ChatMessageCreateDto> readAllMessagesForBatch(Long chatRoomId, long maxScore) {
+		Set<Object> messages = zSetRedisRepository.getElementByScoreLessThanEqual(
+			generateChatMessageKey(chatRoomId), maxScore);
+
+		return messages.stream()
+			.map(element -> jsonConverter.fromJson((String)element, ChatMessageCreateDto.class))
+			.toList();
+	}
+
+	public Set<String> findAllChatRoomKeysWithMessages() {
+		return valueRedisRepository.getKeysByPatten(REDIS_CHAT_MESSAGE_PREFIX + "*");
+	}
+
+	public ChatRoomCacheDto getChatRoomCache(Long chatRoomId) {
+		return jsonConverter.fromJson(
+			valueRedisRepository.getValue(generateChatRoomCacheKey(chatRoomId)), ChatRoomCacheDto.class);
+	}
+
+	public MemberCacheDto getMemberCache(String nickname) {
+		return jsonConverter.fromJson(
+			valueRedisRepository.getValue(generateMemberCacheKey(nickname)), MemberCacheDto.class);
 	}
 
 	public boolean isChatRoomCached(Long chatRoomId) {
