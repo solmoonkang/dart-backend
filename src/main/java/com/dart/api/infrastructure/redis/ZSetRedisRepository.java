@@ -47,6 +47,10 @@ public class ZSetRedisRepository {
 			.collect(Collectors.toSet());
 	}
 
+	public Set<Object> getElementByScoreLessThanEqual(String key, long maxScore) {
+		return redisTemplate.opsForZSet().rangeByScore(key, 0, maxScore);
+	}
+
 	public void removeElement(String key, Object value) {
 		redisTemplate.opsForZSet().remove(requireNonNull(key), requireNonNull(value));
 	}
