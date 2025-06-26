@@ -1,6 +1,7 @@
 package com.dart.api.infrastructure.redis;
 
 import java.time.Duration;
+import java.util.Set;
 
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
@@ -34,6 +35,10 @@ public class ValueRedisRepository {
 	public String getValue(String key) {
 		ValueOperations<String, String> valueOperations = redisTemplate.opsForValue();
 		return valueOperations.get(key);
+	}
+
+	public Set<String> getKeysByPatten(String pattern) {
+		return redisTemplate.keys(pattern);
 	}
 
 	public void deleteValue(String key) {
