@@ -13,6 +13,7 @@ import org.springframework.stereotype.Repository;
 import com.dart.api.dto.chat.request.ChatMessageCreateDto;
 import com.dart.api.dto.chat.request.cache.ChatRoomCacheDto;
 import com.dart.api.dto.chat.request.cache.MemberCacheDto;
+import com.dart.api.dto.chat.response.ChatMessageReadDto;
 import com.dart.api.infrastructure.redis.ValueRedisRepository;
 import com.dart.api.infrastructure.redis.ZSetRedisRepository;
 import com.dart.global.common.util.JsonConverter;
@@ -47,6 +48,16 @@ public class ChatMessageRedisRepository {
 			generateMemberCacheKey(memberCacheDto.nickname()),
 			jsonConverter.toJson(memberCacheDto),
 			CACHE_EXPIRY_HOURS.getSeconds());
+	}
+
+	public List<ChatMessageReadDto> readAllMessages(Long chatRoomId, int page, int size) {
+		int start = page * size;
+
+		Set<Object> messages = zSetRedisRepository.getRecentRange(generateChatMessageKey(chatRoomId), start, size);
+
+		return messages.stream()
+			.map(element -> jsonConverter.fromJson((String)element, ChatMessageReadDto.class))
+			.toList();
 	}
 
 	public List<ChatMessageCreateDto> readAllMessagesForBatch(Long chatRoomId, long maxScore) {
