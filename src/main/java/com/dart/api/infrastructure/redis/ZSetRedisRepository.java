@@ -39,6 +39,10 @@ public class ZSetRedisRepository {
 		return redisTemplate.opsForZSet().range(requireNonNull(key), start, end);
 	}
 
+	public Set<Object> getRecentRange(String key, int start, int count) {
+		return redisTemplate.opsForZSet().reverseRange(requireNonNull(key), start, start + count - 1);
+	}
+
 	public Set<String> getRangeAsStringSet(String key, long start, long end) {
 		Set<Object> result = redisTemplate.opsForZSet().range(key, start, end);
 
