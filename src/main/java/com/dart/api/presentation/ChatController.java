@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.dart.api.application.chat.message.ChatMessageReadService;
 import com.dart.api.application.chat.message.ChatMessageService;
 import com.dart.api.dto.chat.request.ChatMessageCreateDto;
 import com.dart.api.dto.chat.response.ChatMessageReadDto;
@@ -32,28 +31,27 @@ public class ChatController {
 	private final SimpMessageSendingOperations simpMessageSendingOperations;
 	private final MemberSessionRegistry memberSessionRegistry;
 	private final ChatMessageService chatMessageService;
-	private final ChatMessageReadService chatMessageReadService;
 
-	@MessageMapping(value = "/ws/{chat-room-id}/chat-messages")
+	@MessageMapping(value = "/ws/{chatRoomId}/chat-messages")
 	public void saveAndSendChatMessageToMySQL(
-		@DestinationVariable("chat-room-id") Long chatRoomId,
-		@Payload @Validated ChatMessageCreateDto chatMessageCreateDto
-	) {
+		@DestinationVariable("chatRoomId") Long chatRoomId,
+		@Payload @Validated ChatMessageCreateDto chatMessageCreateDto) {
+
 		chatMessageService.saveChatMessage(chatRoomId, chatMessageCreateDto);
 		simpMessageSendingOperations.convertAndSend(TOPIC_PREFIX + chatRoomId, chatMessageCreateDto);
 	}
 
-	@GetMapping("/api/{chat-room-id}/chat-messages")
+	@GetMapping("/api/{chatRoomId}/chat-messages")
 	public ResponseEntity<PageResponse<ChatMessageReadDto>> getChatMessageList(
-		@PathVariable("chat-room-id") Long chatRoomId,
+		@PathVariable("chatRoomId") Long chatRoomId,
 		@RequestParam(defaultValue = "0") int page,
-		@RequestParam(defaultValue = "99") int size
-	) {
-		return ResponseEntity.ok(chatMessageReadService.getChatMessageList(chatRoomId, page, size));
+		@RequestParam(defaultValue = "100") int size) {
+
+		return ResponseEntity.ok(chatMessageService.getAllChatMessages(chatRoomId, page, size));
 	}
 
-	@GetMapping("/api/chat-rooms/{chat-room-id}/members")
-	public ResponseEntity<List<MemberSessionDto>> getLoggedInVisitors(@PathVariable("chat-room-id") Long chatRoomId) {
+	@GetMapping("/api/chat-rooms/{chatRoomId}/members")
+	public ResponseEntity<List<MemberSessionDto>> getLoggedInVisitors(@PathVariable("chatRoomId") Long chatRoomId) {
 		return ResponseEntity.ok(memberSessionRegistry.getMembersInChatRoom(TOPIC_PREFIX + chatRoomId));
 	}
 }
