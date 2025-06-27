@@ -2,6 +2,7 @@ package com.dart.api.dto.chat.response;
 
 import java.time.LocalDateTime;
 
+import com.dart.api.domain.chat.entity.ChatMessage;
 import com.dart.api.dto.chat.request.ChatMessageCreateDto;
 
 import lombok.Builder;
@@ -21,17 +22,14 @@ public record ChatMessageReadDto(
 	String profileImageUrl
 ) {
 
-	public static ChatMessageReadDto fromChatMessageCreateDto(
-		Long chatRoomId,
-		ChatMessageCreateDto chatMessageCreateDto) {
-
-		return ChatMessageReadDto.builder()
-			.chatRoomId(chatRoomId)
-			.sender(chatMessageCreateDto.sender())
-			.content(chatMessageCreateDto.content())
-			.createdAt(chatMessageCreateDto.createdAt())
-			.isAuthor(chatMessageCreateDto.isAuthor())
-			.profileImageUrl(chatMessageCreateDto.profileImageUrl())
-			.build();
+	public static ChatMessageReadDto createMessageReadDto(ChatMessage chatMessage) {
+		return new ChatMessageReadDto(
+			chatMessage.getChatRoom().getId(),
+			chatMessage.getMember().getNickname(),
+			chatMessage.getContent(),
+			chatMessage.getCreatedAt(),
+			chatMessage.isAuthor(),
+			chatMessage.getMember().getProfileImageUrl()
+		);
 	}
 }
