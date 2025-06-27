@@ -1,6 +1,7 @@
 package com.dart.api.infrastructure.websocket;
 
 import static com.dart.global.common.util.ChatConstant.*;
+import static com.dart.global.error.model.ErrorCode.*;
 
 import java.util.Objects;
 
@@ -13,11 +14,15 @@ import org.springframework.web.socket.messaging.SessionSubscribeEvent;
 
 import com.dart.api.application.chat.cache.ChatMessageCacheService;
 import com.dart.api.domain.auth.entity.AuthUser;
+import com.dart.api.domain.chat.entity.ChatRoom;
+import com.dart.api.domain.chat.repository.ChatRoomRepository;
 import com.dart.api.domain.member.entity.Member;
 import com.dart.api.domain.member.repository.MemberRepository;
+import com.dart.api.dto.chat.request.cache.ChatRoomCacheDto;
+import com.dart.api.dto.chat.request.cache.MemberCacheDto;
 import com.dart.global.error.exception.BadRequestException;
+import com.dart.global.error.exception.NotFoundException;
 import com.dart.global.error.exception.UnauthorizedException;
-import com.dart.global.error.model.ErrorCode;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,8 +32,11 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class WebSocketEventListener {
 
+	private static final String DEFAULT_TEST_EMAIL = "thfans0521@naver.com";
+
 	private final MemberSessionRegistry memberSessionRegistry;
 	private final MemberRepository memberRepository;
+	private final ChatRoomRepository chatRoomRepository;
 	private final ChatMessageCacheService chatMessageCacheService;
 
 	@EventListener
@@ -40,24 +48,35 @@ public class WebSocketEventListener {
 		validateDestinationPresent(destination);
 
 		final AuthUser authUser = extractAuthUserFromAttributes(sessionSubscribeEvent);
-		if (authUser == null) {
-			log.warn("[✅ LOGGER] 캐싱 처리로 인한 테스트로 인해 현재 사용자 인증을 무시합니다.");
+
+		final Long chatRoomId = extractChatRoomIdFromDestination(destination);
+		final ChatRoom chatRoom = getChatRoomById(chatRoomId);
+
+		// ✅ 로그인한 사용자면 그대로 처리
+		if (authUser != null) {
+			final Member member = getMemberByEmail(authUser.email());
+
+			chatMessageCacheService.cacheChatRoom(ChatRoomCacheDto.createChatRoomCacheDto(chatRoom));
+			chatMessageCacheService.cacheMember(MemberCacheDto.createMemberCacheDto(member));
+
+			log.info("[✅ LOGGER] MEMBER {} IS JOIN CHATROOM", member.getNickname());
+
+			memberSessionRegistry.removeSessionByNickname(member.getNickname());
+			memberSessionRegistry.addSession(member.getNickname(), sessionId, destination, member.getProfileImageUrl());
 			return;
 		}
 
-		final Long chatRoomId = extractChatRoomIdFromDestination(destination);
+		// ✅ 테스트용 비인증 유저 처리 (임시)
+		final Member testMember = getMemberByEmail(DEFAULT_TEST_EMAIL);
 
-		// TODO: 적은 유저 수라면 제일 단순하고 실용적일 수 있다. 예를 들어 1,000명 미만의 트래픽과 사내/폐쇄형 커뮤니티 등에 어울린다.
-		//  하지만 추후 성능 상 문제가 발생할 수 있어 프로필 이미지만 Redis에 별도 캐싱을 해서 캐시 히트 시 RDB 접근이 없어 채팅방 입장이 더 빨라질 수 있다.
-		//  그렇게 되면 getMemberByEmail를 없앨 수 있다.
-		final Member member = getMemberByEmail(authUser.email());
+		chatMessageCacheService.cacheChatRoom(ChatRoomCacheDto.createChatRoomCacheDto(chatRoom));
+		chatMessageCacheService.cacheMember(MemberCacheDto.createMemberCacheDto(testMember));
 
-		chatMessageCacheService.cacheChatRoom(chatRoomId);
-		chatMessageCacheService.cacheMember(authUser.nickname());
+		log.info("[⚠️ LOGGER] TEST USER {} IS JOIN CHATROOM WITHOUT LOGIN", testMember.getNickname());
 
-		log.info("[✅ LOGGER] MEMBER {} IS JOIN CHATROOM", authUser.nickname());
-		memberSessionRegistry.removeSessionByNickname(member.getNickname());
-		memberSessionRegistry.addSession(member.getNickname(), sessionId, destination, member.getProfileImageUrl());
+		memberSessionRegistry.removeSessionByNickname(testMember.getNickname());
+		memberSessionRegistry.addSession(testMember.getNickname(), sessionId, destination,
+			testMember.getProfileImageUrl());
 	}
 
 	@EventListener
@@ -66,11 +85,19 @@ public class WebSocketEventListener {
 		validateSessionIdPresent(sessionId);
 
 		final AuthUser authUser = extractAuthUserFromAttributes(sessionDisconnectEvent);
-		if (authUser == null)
-			return;
 
-		log.info("[✅ LOGGER] MEMBER {} IS LEFT CHATROOM", authUser.nickname());
-		memberSessionRegistry.removeSession(sessionId);
+		// ✅ 로그인한 사용자면 그대로 처리
+		if (authUser != null) {
+			final Member member = getMemberByEmail(authUser.email());
+			log.info("[✅ LOGGER] MEMBER {} IS LEFT CHATROOM", member.getNickname());
+			memberSessionRegistry.removeSessionByNickname(member.getNickname());
+			return;
+		}
+
+		// ✅ 테스트용 비인증 유저 처리 (임시)
+		final Member testMember = getMemberByEmail(DEFAULT_TEST_EMAIL);
+		log.info("[⚠️ LOGGER] TEST USER {} IS LEFT CHATROOM WITHOUT LOGIN", testMember.getNickname());
+		memberSessionRegistry.removeSessionByNickname(testMember.getNickname());
 	}
 
 	private String extractSessionIdFromHeaderAccessor(AbstractSubProtocolEvent event) {
@@ -94,18 +121,23 @@ public class WebSocketEventListener {
 
 	private void validateSessionIdPresent(String sessionId) {
 		if (sessionId == null || sessionId.isEmpty()) {
-			throw new BadRequestException(ErrorCode.FAIL_INVALID_SESSION_ID);
+			throw new BadRequestException(FAIL_INVALID_SESSION_ID);
 		}
 	}
 
 	private void validateDestinationPresent(String destination) {
 		if (destination == null || destination.isEmpty()) {
-			throw new BadRequestException(ErrorCode.FAIL_INVALID_DESTINATION);
+			throw new BadRequestException(FAIL_INVALID_DESTINATION);
 		}
 	}
 
 	private Member getMemberByEmail(String email) {
 		return memberRepository.findByEmail(email)
-			.orElseThrow(() -> new UnauthorizedException(ErrorCode.FAIL_LOGIN_REQUIRED));
+			.orElseThrow(() -> new UnauthorizedException(FAIL_LOGIN_REQUIRED));
+	}
+
+	private ChatRoom getChatRoomById(Long chatRoomId) {
+		return chatRoomRepository.findById(chatRoomId)
+			.orElseThrow(() -> new NotFoundException(FAIL_CHAT_ROOM_NOT_FOUND));
 	}
 }
