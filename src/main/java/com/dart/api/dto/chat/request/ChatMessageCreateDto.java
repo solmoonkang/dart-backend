@@ -2,6 +2,8 @@ package com.dart.api.dto.chat.request;
 
 import java.time.LocalDateTime;
 
+import com.dart.api.dto.chat.response.ChatMessageReadDto;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Builder;
@@ -21,4 +23,14 @@ public record ChatMessageCreateDto(
 
 	String profileImageUrl
 ) {
+
+	public static ChatMessageCreateDto createMessageCreateDto(ChatMessageReadDto chatMessageReadDto) {
+		return new ChatMessageCreateDto(
+			chatMessageReadDto.sender(),
+			chatMessageReadDto.content(),
+			chatMessageReadDto.createdAt(),
+			chatMessageReadDto.isAuthor(),
+			chatMessageReadDto.profileImageUrl()
+		);
+	}
 }
