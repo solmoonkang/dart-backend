@@ -3,6 +3,7 @@ package com.dart.api.application.chat.room;
 import org.springframework.stereotype.Service;
 
 import com.dart.api.domain.chat.entity.ChatRoom;
+import com.dart.api.domain.chat.repository.ChatMessageRedisRepository;
 import com.dart.api.domain.chat.repository.ChatMessageRepository;
 import com.dart.api.domain.chat.repository.ChatRoomRepository;
 import com.dart.api.domain.gallery.entity.Gallery;
@@ -16,8 +17,8 @@ import lombok.RequiredArgsConstructor;
 public class ChatRoomService {
 
 	private final ChatRoomRepository chatRoomRepository;
-	private final ChatRedisRepository chatRedisRepository;
 	private final ChatMessageRepository chatMessageRepository;
+	private final ChatMessageRedisRepository chatMessageRedisRepository;
 
 	public void createChatRoom(Gallery gallery) {
 		final ChatRoom chatRoom = ChatRoom.createChatRoom(gallery);
@@ -29,7 +30,7 @@ public class ChatRoomService {
 			.orElseThrow(() -> new NotFoundException(ErrorCode.FAIL_CHAT_ROOM_NOT_FOUND));
 
 		chatMessageRepository.deleteByChatRoom(chatRoom);
-		chatRedisRepository.deleteChatMessages(chatRoom.getId());
+		chatMessageRedisRepository.deleteChatMessages(chatRoom.getId());
 		chatRoomRepository.delete(chatRoom);
 	}
 }
