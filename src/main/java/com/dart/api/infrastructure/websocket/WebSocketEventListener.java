@@ -12,6 +12,7 @@ import org.springframework.web.socket.messaging.AbstractSubProtocolEvent;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 import org.springframework.web.socket.messaging.SessionSubscribeEvent;
 
+import com.dart.api.application.chat.cache.CacheKeyMemoryStore;
 import com.dart.api.application.chat.cache.ChatMessageCacheService;
 import com.dart.api.domain.auth.entity.AuthUser;
 import com.dart.api.domain.chat.entity.ChatRoom;
@@ -32,12 +33,14 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class WebSocketEventListener {
 
-	private static final String DEFAULT_TEST_EMAIL = "thfans0521@naver.com";
+	private static final String TEST_EMAIL = "thfans0521@naver.com";
+	private static final String TEST_NICKNAME = "solmoon";
 
 	private final MemberSessionRegistry memberSessionRegistry;
 	private final MemberRepository memberRepository;
 	private final ChatRoomRepository chatRoomRepository;
 	private final ChatMessageCacheService chatMessageCacheService;
+	private final CacheKeyMemoryStore cacheKeyMemoryStore;
 
 	@EventListener
 	public void handleSubscribeEvent(SessionSubscribeEvent sessionSubscribeEvent) {
@@ -48,35 +51,43 @@ public class WebSocketEventListener {
 		validateDestinationPresent(destination);
 
 		final AuthUser authUser = extractAuthUserFromAttributes(sessionSubscribeEvent);
-
 		final Long chatRoomId = extractChatRoomIdFromDestination(destination);
-		final ChatRoom chatRoom = getChatRoomById(chatRoomId);
 
 		// ✅ 로그인한 사용자면 그대로 처리
 		if (authUser != null) {
-			final Member member = getMemberByEmail(authUser.email());
+			if (chatMessageCacheService.isChatRoomNotCached(chatRoomId)) {
+				final ChatRoom chatRoom = getChatRoomById(chatRoomId);
+				chatMessageCacheService.cacheChatRoom(ChatRoomCacheDto.createChatRoomCacheDto(chatRoom));
+			}
 
-			chatMessageCacheService.cacheChatRoom(ChatRoomCacheDto.createChatRoomCacheDto(chatRoom));
-			chatMessageCacheService.cacheMember(MemberCacheDto.createMemberCacheDto(member));
+			if (chatMessageCacheService.isMemberNotCached(authUser.nickname())) {
+				final Member member = getMemberByEmail(authUser.email());
+				chatMessageCacheService.cacheMember(MemberCacheDto.createMemberCacheDto(member));
+			}
 
-			log.info("[✅ LOGGER] MEMBER {} IS JOIN CHATROOM", member.getNickname());
+			final MemberCacheDto memberCacheDto = chatMessageCacheService.getMemberCache(authUser.nickname());
 
-			memberSessionRegistry.removeSessionByNickname(member.getNickname());
-			memberSessionRegistry.addSession(member.getNickname(), sessionId, destination, member.getProfileImageUrl());
+			log.info("[✅ LOGGER] MEMBER {} IS JOIN CHATROOM", authUser.nickname());
+			memberSessionRegistry.removeSessionByNickname(authUser.nickname());
+			memberSessionRegistry.addSession(authUser.nickname(), sessionId, destination,
+				memberCacheDto.profileImageURI());
 			return;
 		}
 
 		// ✅ 테스트용 비인증 유저 처리 (임시)
-		final Member testMember = getMemberByEmail(DEFAULT_TEST_EMAIL);
+		if (chatMessageCacheService.isChatRoomNotCached(chatRoomId)) {
+			chatMessageCacheService.cacheChatRoom(new ChatRoomCacheDto(chatRoomId, "JMeter 테스트 채팅방"));
+		}
 
-		chatMessageCacheService.cacheChatRoom(ChatRoomCacheDto.createChatRoomCacheDto(chatRoom));
-		chatMessageCacheService.cacheMember(MemberCacheDto.createMemberCacheDto(testMember));
+		if (chatMessageCacheService.isMemberNotCached(TEST_NICKNAME)) {
+			chatMessageCacheService.cacheMember(new MemberCacheDto(1L, TEST_NICKNAME, null));
+		}
 
-		log.info("[⚠️ LOGGER] TEST USER {} IS JOIN CHATROOM WITHOUT LOGIN", testMember.getNickname());
+		final MemberCacheDto memberCacheDto = chatMessageCacheService.getMemberCache(TEST_NICKNAME);
+		log.info("[⚠️ LOGGER] TEST USER {} IS JOIN CHATROOM WITHOUT LOGIN", TEST_NICKNAME);
 
-		memberSessionRegistry.removeSessionByNickname(testMember.getNickname());
-		memberSessionRegistry.addSession(testMember.getNickname(), sessionId, destination,
-			testMember.getProfileImageUrl());
+		memberSessionRegistry.removeSessionByNickname(TEST_NICKNAME);
+		memberSessionRegistry.addSession(TEST_NICKNAME, sessionId, destination, memberCacheDto.profileImageURI());
 	}
 
 	@EventListener
@@ -88,16 +99,18 @@ public class WebSocketEventListener {
 
 		// ✅ 로그인한 사용자면 그대로 처리
 		if (authUser != null) {
-			final Member member = getMemberByEmail(authUser.email());
-			log.info("[✅ LOGGER] MEMBER {} IS LEFT CHATROOM", member.getNickname());
-			memberSessionRegistry.removeSessionByNickname(member.getNickname());
+			if (chatMessageCacheService.isMemberNotCached(authUser.nickname())) {
+				log.warn("[⚠️ LOGGER] MEMBER {} DISCONNECTED BUT NOT CACHED", authUser.nickname());
+			}
+
+			log.info("[✅ LOGGER] MEMBER {} IS LEFT CHATROOM", authUser.nickname());
+			memberSessionRegistry.removeSessionByNickname(authUser.nickname());
 			return;
 		}
 
 		// ✅ 테스트용 비인증 유저 처리 (임시)
-		final Member testMember = getMemberByEmail(DEFAULT_TEST_EMAIL);
-		log.info("[⚠️ LOGGER] TEST USER {} IS LEFT CHATROOM WITHOUT LOGIN", testMember.getNickname());
-		memberSessionRegistry.removeSessionByNickname(testMember.getNickname());
+		log.info("[⚠️ LOGGER] TEST USER {} IS LEFT CHATROOM WITHOUT LOGIN", TEST_NICKNAME);
+		memberSessionRegistry.removeSessionByNickname(TEST_NICKNAME);
 	}
 
 	private String extractSessionIdFromHeaderAccessor(AbstractSubProtocolEvent event) {
