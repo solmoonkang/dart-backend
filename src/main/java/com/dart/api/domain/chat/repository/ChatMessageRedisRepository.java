@@ -14,9 +14,11 @@ import com.dart.api.dto.chat.request.ChatMessageCreateDto;
 import com.dart.api.dto.chat.request.cache.ChatRoomCacheDto;
 import com.dart.api.dto.chat.request.cache.MemberCacheDto;
 import com.dart.api.dto.chat.response.ChatMessageReadDto;
+import com.dart.api.infrastructure.redis.ListRedisRepository;
 import com.dart.api.infrastructure.redis.ValueRedisRepository;
 import com.dart.api.infrastructure.redis.ZSetRedisRepository;
 import com.dart.global.common.util.JsonConverter;
+import com.dart.global.common.util.MessagePackConverter;
 
 import lombok.RequiredArgsConstructor;
 
@@ -25,62 +27,79 @@ import lombok.RequiredArgsConstructor;
 public class ChatMessageRedisRepository {
 
 	private final ZSetRedisRepository zSetRedisRepository;
+	private final ListRedisRepository listRedisRepository;
 	private final ValueRedisRepository valueRedisRepository;
 	private final JsonConverter jsonConverter;
+	private final MessagePackConverter messagePackConverter;
 
 	public void saveChatMessage(Long chatRoomId, ChatMessageCreateDto chatMessageCreateDto) {
+		byte[] packedMessage = messagePackConverter.serialize(chatMessageCreateDto);
+
 		zSetRedisRepository.addElementWithExpiry(
-			generateChatMessageKey(chatRoomId),
-			jsonConverter.toJson(chatMessageCreateDto),
+			generateChatMessageReadKey(chatRoomId),
+			packedMessage,
 			convertToScore(chatMessageCreateDto.createdAt()),
-			CHAT_MESSAGE_EXPIRY_SECONDS);
+			CHAT_MESSAGE_EXPIRY_SECONDS
+		);
+
+		listRedisRepository.addElementWithExpiry(
+			generateChatMessageStoreKey(chatRoomId),
+			packedMessage,
+			CHAT_MESSAGE_EXPIRY_SECONDS
+		);
 	}
 
 	public void cacheChatRoom(ChatRoomCacheDto chatRoomCacheDto) {
 		valueRedisRepository.saveValueWithExpiry(
 			generateChatRoomCacheKey(chatRoomCacheDto.chatRoomId()),
 			jsonConverter.toJson(chatRoomCacheDto),
-			CACHE_EXPIRY_HOURS.getSeconds());
+			CACHE_EXPIRY_HOURS.getSeconds()
+		);
 	}
 
 	public void cacheMember(MemberCacheDto memberCacheDto) {
 		valueRedisRepository.saveValueWithExpiry(
 			generateMemberCacheKey(memberCacheDto.nickname()),
 			jsonConverter.toJson(memberCacheDto),
-			CACHE_EXPIRY_HOURS.getSeconds());
+			CACHE_EXPIRY_HOURS.getSeconds()
+		);
 	}
 
 	public List<ChatMessageReadDto> readAllMessages(Long chatRoomId, int page, int size) {
 		int start = page * size;
 
-		Set<Object> messages = zSetRedisRepository.getRecentRange(generateChatMessageKey(chatRoomId), start, size);
+		Set<Object> messages = zSetRedisRepository.getRecentRange(generateChatMessageReadKey(chatRoomId), start, size);
 
 		return messages.stream()
-			.map(element -> jsonConverter.fromJson((String)element, ChatMessageReadDto.class))
+			.map(o -> (byte[])o)
+			.map(bytes -> messagePackConverter.deserialize(bytes, ChatMessageReadDto.class))
 			.toList();
 	}
 
 	public List<ChatMessageCreateDto> readAllMessagesForBatch(Long chatRoomId, long maxScore) {
-		Set<Object> messages = zSetRedisRepository.getElementByScoreLessThanEqual(
-			generateChatMessageKey(chatRoomId), maxScore);
+		List<Object> messages = listRedisRepository.getRange(generateChatMessageStoreKey(chatRoomId), 0, -1);
 
 		return messages.stream()
-			.map(element -> jsonConverter.fromJson((String)element, ChatMessageCreateDto.class))
+			.map(o -> (byte[])o)
+			.map(bytes -> messagePackConverter.deserialize(bytes, ChatMessageCreateDto.class))
+			.filter(createDto -> convertToScore(createDto.createdAt()) <= maxScore)
 			.toList();
 	}
 
 	public Set<String> findAllChatRoomKeysWithMessages() {
-		return valueRedisRepository.getKeysByPatten(REDIS_CHAT_MESSAGE_PREFIX + "*");
+		return valueRedisRepository.getKeysByPatten(REDIS_CHAT_MESSAGE_STORE_PREFIX + "*");
 	}
 
 	public ChatRoomCacheDto getChatRoomCache(Long chatRoomId) {
 		return jsonConverter.fromJson(
-			valueRedisRepository.getValue(generateChatRoomCacheKey(chatRoomId)), ChatRoomCacheDto.class);
+			valueRedisRepository.getValue(generateChatRoomCacheKey(chatRoomId)), ChatRoomCacheDto.class
+		);
 	}
 
 	public MemberCacheDto getMemberCache(String nickname) {
 		return jsonConverter.fromJson(
-			valueRedisRepository.getValue(generateMemberCacheKey(nickname)), MemberCacheDto.class);
+			valueRedisRepository.getValue(generateMemberCacheKey(nickname)), MemberCacheDto.class
+		);
 	}
 
 	public boolean isChatRoomCached(Long chatRoomId) {
@@ -91,14 +110,22 @@ public class ChatMessageRedisRepository {
 		return valueRedisRepository.isValueExists(generateMemberCacheKey(nickname));
 	}
 
+	public void deleteChatMessages(Long chatRoomId) {
+		zSetRedisRepository.deleteAllElements(generateChatMessageStoreKey(chatRoomId));
+	}
+
 	private long convertToScore(LocalDateTime createdAt) {
 		return createdAt.atZone(ZoneId.systemDefault())
 			.toInstant()
 			.toEpochMilli();
 	}
 
-	private String generateChatMessageKey(Long chatRoomId) {
-		return REDIS_CHAT_MESSAGE_PREFIX + chatRoomId;
+	private String generateChatMessageStoreKey(Long chatRoomId) {
+		return REDIS_CHAT_MESSAGE_STORE_PREFIX + chatRoomId;
+	}
+
+	private String generateChatMessageReadKey(Long chatRoomId) {
+		return REDIS_CHAT_MESSAGE_READ_PREFIX + chatRoomId;
 	}
 
 	private String generateChatRoomCacheKey(Long chatRoomId) {
