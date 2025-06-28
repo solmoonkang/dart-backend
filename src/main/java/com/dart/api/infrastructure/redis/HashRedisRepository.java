@@ -1,7 +1,10 @@
 package com.dart.api.infrastructure.redis;
 
 import java.time.Duration;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -31,6 +34,33 @@ public class HashRedisRepository {
 	public String getHashEntry(String key, String hashKey) {
 		HashOperations<String, Object, Object> values = redisTemplate.opsForHash();
 		return Boolean.TRUE.equals(values.hasKey(key, hashKey)) ? (String)values.get(key, hashKey) : "";
+	}
+
+	public Map<String, String> getAllHashEntries(String key) {
+		HashOperations<String, Object, Object> hashOperations = redisTemplate.opsForHash();
+		Map<Object, Object> redisRawMap = hashOperations.entries(key);
+		Map<String, String> cacheData = new LinkedHashMap<>();
+
+		for (Map.Entry<Object, Object> entry : redisRawMap.entrySet()) {
+			addHashEntry(cacheData, entry.getKey(), entry.getValue());
+		}
+
+		return cacheData;
+	}
+
+	private void addHashEntry(Map<String, String> target, Object rawKey, Object rawValue) {
+		if (rawKey == null) {
+			return;
+		}
+
+		String key = rawKey.toString();
+
+		if (rawValue == null) {
+			target.put(key, null);
+			return;
+		}
+
+		target.put(key, rawValue.toString());
 	}
 
 	public void updateHashEntry(String key, String field, String value) {
