@@ -13,12 +13,27 @@ import lombok.RequiredArgsConstructor;
 public class ChatMessageCacheService {
 
 	private final ChatMessageRedisRepository chatMessageRedisRepository;
+	private final CacheKeyMemoryStore cacheKeyMemoryStore;
+
+	public boolean isChatRoomNotCached(Long chatRoomId) {
+		return !cacheKeyMemoryStore.isChatRoomCached(chatRoomId);
+	}
+
+	public boolean isMemberNotCached(String nickname) {
+		return !cacheKeyMemoryStore.isMemberCached(nickname);
+	}
 
 	public void cacheChatRoom(ChatRoomCacheDto chatRoomCacheDto) {
 		chatMessageRedisRepository.cacheChatRoom(chatRoomCacheDto);
+		cacheKeyMemoryStore.cacheChatRoom(chatRoomCacheDto.chatRoomId());
 	}
 
 	public void cacheMember(MemberCacheDto memberCacheDto) {
 		chatMessageRedisRepository.cacheMember(memberCacheDto);
+		cacheKeyMemoryStore.cacheMember(memberCacheDto.nickname());
+	}
+
+	public MemberCacheDto getMemberCache(String nickname) {
+		return chatMessageRedisRepository.getMemberCache(nickname);
 	}
 }
