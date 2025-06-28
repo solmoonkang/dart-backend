@@ -56,6 +56,9 @@ dependencies {
     // Web Socket
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
 
+    // MessagePack
+    implementation 'org.msgpack:jackson-dataformat-msgpack:0.9.0'
+
     // S3
     implementation 'org.springframework.cloud:spring-cloud-starter-aws:2.2.6.RELEASE'
 
