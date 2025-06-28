@@ -12,6 +12,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.dart.api.application.chat.cache.ChatMessageCacheService;
 import com.dart.api.domain.chat.entity.ChatMessage;
 import com.dart.api.domain.chat.repository.ChatMessageRedisRepository;
 import com.dart.api.domain.chat.repository.ChatMessageRepository;
@@ -29,6 +30,7 @@ public class ChatMessageReadService {
 
 	private final ChatMessageRedisRepository chatMessageRedisRepository;
 	private final ChatMessageRepository chatMessageRepository;
+	private final ChatMessageCacheService chatMessageCacheService;
 
 	@Transactional(readOnly = true)
 	public PageResponse<ChatMessageReadDto> findChatMessages(Long chatRoomId, int page, int size) {
@@ -80,13 +82,13 @@ public class ChatMessageReadService {
 	}
 
 	public void validateChatRoomExistsInCache(Long chatRoomId) {
-		if (!chatMessageRedisRepository.isChatRoomCached(chatRoomId)) {
+		if (chatMessageCacheService.isChatRoomNotCached(chatRoomId)) {
 			throw new NotFoundException(FAIL_CHAT_ROOM_NOT_FOUND);
 		}
 	}
 
 	public void validateMemberExistsInCache(String nickname) {
-		if (!chatMessageRedisRepository.isMemberCached(nickname)) {
+		if (chatMessageCacheService.isMemberNotCached(nickname)) {
 			throw new NotFoundException(FAIL_MEMBER_NOT_FOUND);
 		}
 	}
