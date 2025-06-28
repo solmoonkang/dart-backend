@@ -102,14 +102,6 @@ public class ChatMessageRedisRepository {
 		);
 	}
 
-	public boolean isChatRoomCached(Long chatRoomId) {
-		return valueRedisRepository.isValueExists(generateChatRoomCacheKey(chatRoomId));
-	}
-
-	public boolean isMemberCached(String nickname) {
-		return valueRedisRepository.isValueExists(generateMemberCacheKey(nickname));
-	}
-
 	public void deleteChatMessages(Long chatRoomId) {
 		zSetRedisRepository.deleteAllElements(generateChatMessageStoreKey(chatRoomId));
 	}
@@ -133,6 +125,6 @@ public class ChatMessageRedisRepository {
 	}
 
 	private String generateMemberCacheKey(String nickname) {
-		return REDIS_MEMBER_NICKNAME_CACHE_PREFIX + nickname;
+		return REDIS_MEMBER_CACHE_PREFIX + nickname;
 	}
 }
