@@ -6,6 +6,7 @@ import static com.dart.global.common.util.RedisConstant.*;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.springframework.stereotype.Repository;
@@ -14,11 +15,12 @@ import com.dart.api.dto.chat.request.ChatMessageCreateDto;
 import com.dart.api.dto.chat.request.cache.ChatRoomCacheDto;
 import com.dart.api.dto.chat.request.cache.MemberCacheDto;
 import com.dart.api.dto.chat.response.ChatMessageReadDto;
+import com.dart.api.infrastructure.redis.HashRedisRepository;
 import com.dart.api.infrastructure.redis.ListRedisRepository;
 import com.dart.api.infrastructure.redis.ValueRedisRepository;
 import com.dart.api.infrastructure.redis.ZSetRedisRepository;
-import com.dart.global.common.util.JsonConverter;
 import com.dart.global.common.util.MessagePackConverter;
+import com.dart.global.common.util.ObjectMapConverter;
 
 import lombok.RequiredArgsConstructor;
 
@@ -28,9 +30,10 @@ public class ChatMessageRedisRepository {
 
 	private final ZSetRedisRepository zSetRedisRepository;
 	private final ListRedisRepository listRedisRepository;
+	private final HashRedisRepository hashRedisRepository;
 	private final ValueRedisRepository valueRedisRepository;
-	private final JsonConverter jsonConverter;
 	private final MessagePackConverter messagePackConverter;
+	private final ObjectMapConverter objectMapConverter;
 
 	public void saveChatMessage(Long chatRoomId, ChatMessageCreateDto chatMessageCreateDto) {
 		byte[] packedMessage = messagePackConverter.serialize(chatMessageCreateDto);
@@ -50,17 +53,21 @@ public class ChatMessageRedisRepository {
 	}
 
 	public void cacheChatRoom(ChatRoomCacheDto chatRoomCacheDto) {
-		valueRedisRepository.saveValueWithExpiry(
+		Map<String, String> cacheData = objectMapConverter.toMap(chatRoomCacheDto);
+
+		hashRedisRepository.saveHashEntriesWithExpiry(
 			generateChatRoomCacheKey(chatRoomCacheDto.chatRoomId()),
-			jsonConverter.toJson(chatRoomCacheDto),
+			cacheData,
 			CACHE_EXPIRY_HOURS.getSeconds()
 		);
 	}
 
 	public void cacheMember(MemberCacheDto memberCacheDto) {
-		valueRedisRepository.saveValueWithExpiry(
+		Map<String, String> cacheData = objectMapConverter.toMap(memberCacheDto);
+
+		hashRedisRepository.saveHashEntriesWithExpiry(
 			generateMemberCacheKey(memberCacheDto.nickname()),
-			jsonConverter.toJson(memberCacheDto),
+			cacheData,
 			CACHE_EXPIRY_HOURS.getSeconds()
 		);
 	}
@@ -91,15 +98,13 @@ public class ChatMessageRedisRepository {
 	}
 
 	public ChatRoomCacheDto getChatRoomCache(Long chatRoomId) {
-		return jsonConverter.fromJson(
-			valueRedisRepository.getValue(generateChatRoomCacheKey(chatRoomId)), ChatRoomCacheDto.class
-		);
+		Map<String, String> cacheData = hashRedisRepository.getAllHashEntries(generateChatRoomCacheKey(chatRoomId));
+		return objectMapConverter.fromMap(cacheData, ChatRoomCacheDto.class);
 	}
 
 	public MemberCacheDto getMemberCache(String nickname) {
-		return jsonConverter.fromJson(
-			valueRedisRepository.getValue(generateMemberCacheKey(nickname)), MemberCacheDto.class
-		);
+		Map<String, String> cacheData = hashRedisRepository.getAllHashEntries(generateMemberCacheKey(nickname));
+		return objectMapConverter.fromMap(cacheData, MemberCacheDto.class);
 	}
 
 	public void deleteChatMessages(Long chatRoomId) {
