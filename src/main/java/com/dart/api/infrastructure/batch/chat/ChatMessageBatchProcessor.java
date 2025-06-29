@@ -1,5 +1,6 @@
 package com.dart.api.infrastructure.batch.chat;
 
+import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -18,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
+@StepScope
 @RequiredArgsConstructor
 public class ChatMessageBatchProcessor implements ItemProcessor<ChatMessageCreateDto, ChatMessage> {
 
@@ -25,7 +27,7 @@ public class ChatMessageBatchProcessor implements ItemProcessor<ChatMessageCreat
 	private final ChatMessageRedisRepository chatMessageRedisRepository;
 
 	@Value("#{jobParameters['chatRoomId']}")
-	private Long chatRoomId;
+	public Long chatRoomId;
 
 	@Override
 	public ChatMessage process(ChatMessageCreateDto chatMessageCreateDto) {
