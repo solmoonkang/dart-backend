@@ -4,8 +4,6 @@ import java.time.LocalDateTime;
 
 import com.dart.api.domain.member.entity.Member;
 import com.dart.api.dto.chat.request.ChatMessageCreateDto;
-import com.dart.api.dto.chat.request.ChatMessageSendDto;
-import com.dart.api.dto.chat.response.ChatMessageReadDto;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -60,47 +58,13 @@ public class ChatMessage {
 	public static ChatMessage chatMessageFromCreateDto(
 		ChatRoom chatRoom,
 		Member member,
-		ChatMessageCreateDto chatMessageCreateDto
-	) {
-		return ChatMessage.builder()
-			.content(chatMessageCreateDto.content())
-			.isAuthor(chatMessageCreateDto.isAuthor())
-			.chatRoom(chatRoom)
-			.member(member)
-			.build();
-	}
+		ChatMessageCreateDto chatMessageCreateDto) {
 
-	public static ChatMessage chatMessageFromReadDto(
-		ChatRoom chatRoom,
-		Member member,
-		ChatMessageReadDto chatMessageReadDto
-	) {
-		return ChatMessage.builder()
-			.chatRoom(chatRoom)
-			.content(chatMessageReadDto.content())
-			.isAuthor(chatMessageReadDto.isAuthor())
-			.member(member)
-			.build();
-	}
-
-	public ChatMessageReadDto toChatMessageReadDto() {
-		return ChatMessageReadDto.builder()
-			.sender(this.member.getNickname())
-			.content(this.content)
-			.createdAt(this.getCreatedAt())
-			.isAuthor(this.isAuthor)
-			.profileImageUrl(this.member.getProfileImageUrl())
-			.build();
-	}
-
-	public ChatMessageSendDto toChatMessageSendDto(long expirySeconds) {
-		return ChatMessageSendDto.builder()
-			.memberId(this.member.getId())
-			.chatRoomId(this.chatRoom.getId())
-			.content(this.content)
-			.createdAt(this.getCreatedAt())
-			.isAuthor(this.isAuthor)
-			.expirySeconds(expirySeconds)
-			.build();
+		return new ChatMessage(
+			chatMessageCreateDto.content(),
+			chatMessageCreateDto.isAuthor(),
+			chatMessageCreateDto.createdAt(),
+			chatRoom,
+			member);
 	}
 }
