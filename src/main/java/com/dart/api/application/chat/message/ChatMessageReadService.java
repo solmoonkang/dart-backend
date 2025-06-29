@@ -16,7 +16,6 @@ import com.dart.api.application.chat.cache.ChatMessageCacheService;
 import com.dart.api.domain.chat.entity.ChatMessage;
 import com.dart.api.domain.chat.repository.ChatMessageRedisRepository;
 import com.dart.api.domain.chat.repository.ChatMessageRepository;
-import com.dart.api.dto.chat.request.ChatMessageCreateDto;
 import com.dart.api.dto.chat.response.ChatMessageReadDto;
 import com.dart.api.dto.page.PageInfo;
 import com.dart.api.dto.page.PageResponse;
@@ -66,7 +65,7 @@ public class ChatMessageReadService {
 
 	private void cacheChatMessages(Long chatRoomId, List<ChatMessageReadDto> messages) {
 		messages.stream()
-			.map(ChatMessageCreateDto::createMessageCreateDto)
+			.map(ChatMessageMapper::toChatMessageCreateDto)
 			.forEach(dto -> chatMessageRedisRepository.saveChatMessage(chatRoomId, dto));
 	}
 
