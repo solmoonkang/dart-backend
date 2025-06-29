@@ -1,4 +1,4 @@
-package com.dart.api.application.chat.message.batch;
+package com.dart.api.application.chat.message;
 
 import static com.dart.global.common.util.RedisConstant.*;
 
@@ -13,8 +13,6 @@ import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import com.dart.api.application.chat.message.ChatMessageReadService;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -27,18 +25,17 @@ public class ChatMessageBatchService {
 	private final Job chatMessageBatchJob;
 	private final ChatMessageReadService chatMessageReadService;
 
-	@Scheduled(cron = "0 */10 * * * *")
+	@Scheduled(cron = "0 */1 * * * *") // 매 1분마다 실행
+	// @Scheduled(cron = "0 */15 * * * *")	// 매 10분마다 실행
 	public void runBatchForAllRooms() {
-		final long maxScore = System.currentTimeMillis();
-
 		final Set<String> chatRoomKeys = chatMessageReadService.findAllChatRoomKeysWithMessages();
 		final List<Long> chatRoomIds = chatRoomKeys.stream()
-			.map(key -> key.replace(REDIS_CHAT_MESSAGE_PREFIX, ""))
+			.map(key -> key.replace(REDIS_CHAT_MESSAGE_STORE_PREFIX, ""))
 			.map(Long::parseLong)
 			.toList();
 
 		for (Long chatRoomId : chatRoomIds) {
-			executeBatch(buildJobParameters(chatRoomId, maxScore));
+			executeBatch(buildJobParameters(chatRoomId));
 		}
 	}
 
@@ -50,7 +47,10 @@ public class ChatMessageBatchService {
 		}
 	}
 
-	private JobParameters buildJobParameters(Long chatRoomId, long maxScore) {
+	private JobParameters buildJobParameters(Long chatRoomId) {
+		final long maxScore = System.currentTimeMillis();
+		log.info("▶️ jobParam chatRoomId={}, maxScore={}", chatRoomId, maxScore);
+
 		return new JobParametersBuilder()
 			.addLong("chatRoomId", chatRoomId)
 			.addLong("maxScore", maxScore)
