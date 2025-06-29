@@ -11,22 +11,25 @@ import org.springframework.stereotype.Component;
 import com.dart.api.domain.chat.repository.ChatMessageRedisRepository;
 import com.dart.api.dto.chat.request.ChatMessageCreateDto;
 
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
-@Component
+@Slf4j
 @StepScope
 @RequiredArgsConstructor
 public class ChatMessageRedisReader implements ItemReader<ChatMessageCreateDto> {
 
 	private final ChatMessageRedisRepository chatMessageRedisRepository;
-
-	@Value("#{jobParameters['chatRoomId']}")
 	private final Long chatRoomId;
-
-	@Value("#{jobParameters['maxScore']}")
-	private final long maxScore;
+	private final Long maxScore;
 
 	private Iterator<ChatMessageCreateDto> cacheMessagesIterator;
+
+	@PostConstruct
+	public void logParams() {
+		log.info("📌 ChatMessageRedisReader 생성됨: chatRoomId={}, maxScore={}", chatRoomId, maxScore);
+	}
 
 	@Override
 	public ChatMessageCreateDto read() {
