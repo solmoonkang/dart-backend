@@ -2,8 +2,7 @@ package com.dart.api.application.chat.message;
 
 import org.springframework.stereotype.Service;
 
-import com.dart.api.domain.chat.repository.ChatMessageRedisRepository;
-import com.dart.api.dto.chat.request.ChatMessageCreateDto;
+import com.dart.api.dto.chat.request.ChatMessageSendDto;
 
 import lombok.RequiredArgsConstructor;
 
@@ -11,9 +10,9 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class ChatMessageWriteService {
 
-	private final ChatMessageRedisRepository chatMessageRedisRepository;
+	private final MessageCommandProducer messageCommandProducer;
 
-	public void saveChatMessage(Long chatRoomId, ChatMessageCreateDto chatMessageCreateDto) {
-		chatMessageRedisRepository.saveChatMessage(chatRoomId, chatMessageCreateDto);
+	public void saveChatMessage(Long chatRoomId, ChatMessageSendDto chatMessageSendDto) {
+		messageCommandProducer.produce(chatRoomId, chatMessageSendDto);
 	}
 }
