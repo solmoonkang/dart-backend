@@ -1,4 +1,4 @@
-package com.dart.api.application.chat.message;
+package com.dart.api.application.chat.command;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;

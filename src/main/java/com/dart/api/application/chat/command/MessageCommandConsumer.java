@@ -1,4 +1,4 @@
-package com.dart.api.application.chat.message;
+package com.dart.api.application.chat.command;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;

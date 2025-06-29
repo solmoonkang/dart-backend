@@ -1,7 +1,8 @@
-package com.dart.api.application.chat.message;
+package com.dart.api.application.chat.command;
 
 import org.springframework.stereotype.Component;
 
+import com.dart.api.application.chat.message.ChatMessageMapper;
 import com.dart.api.dto.chat.request.ChatMessageCommandDto;
 import com.dart.api.dto.chat.request.ChatMessageCreateDto;
 import com.dart.api.dto.chat.request.ChatMessageSendDto;

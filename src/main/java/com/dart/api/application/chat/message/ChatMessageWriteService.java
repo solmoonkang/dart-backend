@@ -2,6 +2,7 @@ package com.dart.api.application.chat.message;
 
 import org.springframework.stereotype.Service;
 
+import com.dart.api.application.chat.command.MessageCommandProducer;
 import com.dart.api.dto.chat.request.ChatMessageSendDto;
 
 import lombok.RequiredArgsConstructor;
