@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.dart.api.application.chat.message.ChatMessageService;
-import com.dart.api.dto.chat.request.ChatMessageCreateDto;
+import com.dart.api.dto.chat.request.ChatMessageSendDto;
 import com.dart.api.dto.chat.response.ChatMessageReadDto;
 import com.dart.api.dto.chat.response.MemberSessionDto;
 import com.dart.api.dto.page.PageResponse;
@@ -26,7 +26,7 @@ import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequiredArgsConstructor
-public class ChatController {
+public class ChatMessageController {
 
 	private final SimpMessageSendingOperations simpMessageSendingOperations;
 	private final MemberSessionRegistry memberSessionRegistry;
@@ -35,10 +35,10 @@ public class ChatController {
 	@MessageMapping(value = "/ws/{chatRoomId}/chat-messages")
 	public void saveAndSendChatMessageToMySQL(
 		@DestinationVariable("chatRoomId") Long chatRoomId,
-		@Payload @Validated ChatMessageCreateDto chatMessageCreateDto) {
+		@Payload @Validated ChatMessageSendDto chatMessageSendDto) {
 
-		chatMessageService.saveChatMessage(chatRoomId, chatMessageCreateDto);
-		simpMessageSendingOperations.convertAndSend(TOPIC_PREFIX + chatRoomId, chatMessageCreateDto);
+		chatMessageService.saveChatMessage(chatRoomId, chatMessageSendDto);
+		simpMessageSendingOperations.convertAndSend(TOPIC_PREFIX + chatRoomId, chatMessageSendDto);
 	}
 
 	@GetMapping("/api/{chatRoomId}/chat-messages")
